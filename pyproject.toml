@@ -1,0 +1,19 @@
+[project]
+name = "minnetaskqueue"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "caveclient>=7.7.4",
+    "cloud-volume>=12.2.0",
+    "ipython>=9.2.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.3",
+    "meshparty>=2.0.1",
+    "nglui>=3.8.2",
+    "pandas>=2.2.3",
+    "scipy>=1.15.3",
+    "task-queue>=2.14.0",
+    "tensorstore>=0.1.75",
+]
