@@ -1,0 +1,1 @@
+docker buildx build --platform linux/amd64 -t caveconnectome/minnietask:h01-4 . --push
