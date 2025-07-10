@@ -8,3 +8,5 @@ __pycache__
 *.json
 *.csv
 results/**
+logs/**
+.venv/**

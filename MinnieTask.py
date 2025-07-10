@@ -230,7 +230,7 @@ class MinniePerformNucMergeTask(RegisteredTask):
         r = {}
         if roots[0] != roots[1]:
             try:
-                client.chunkedgraph.do_merge(
+                resp=client.chunkedgraph.do_merge(
                     [self.nuc_sv_id, self.cell_sv_id],
                     [self.nuc_sv_id_loc, self.cell_sv_id_loc],
                     resolution=self.resolution,
@@ -985,6 +985,59 @@ def make_find_soma_tasks(
     tasks = (make_bnd_func(row) for num, row in df.iterrows())
     return tasks
 
+@queueable
+def execute_merge(
+    merge_id,
+    sv_ids,
+    locations,
+    location_resolution,
+    datastack_name,
+    auth_token,
+    bucket_save_location,
+):
+    start = time.time()
+    client = CAVEclient(datastack_name, auth_token=auth_token)
+    print(f"attempting merge {merge_id}")
+    
+    for i in range(10):
+        try:
+            resp = client.chunkedgraph.do_merge(
+                sv_ids, locations, resolution =location_resolution
+            )
+            d = {
+                "merge_id": merge_id,
+                "sv_id1": sv_ids[0],
+                "sv_id2": sv_ids[1],
+                "operation_id": resp['operation_id'],
+                "success": True,
+                "new_root_ids": resp['new_root_ids'],
+            }
+            # if the merge was successful, we can break out of the loop
+            break
+        except HTTPError as e:
+            d = {
+                    "merge_id": merge_id,
+                    "sv_id1": sv_ids[0],
+                    "sv_id2": sv_ids[1],
+                    "success": False,
+                    "status_code": e.response.status_code,
+                    "message": str(e),
+                }
+            if 'Could not acquire root lock' in str(e):
+                # if root lock error, retry
+                time.sleep(10)
+            else:       
+                # if other error, break to record failure       
+                break
+    dt = time.time() - start
+    d['dt'] = dt
+    d['timestamp'] = datetime.datetime.now().isoformat()
+    print(f"merge {merge_id} success: {d['success']}")
+    print(f"merge {merge_id} took {dt:.2f} seconds")
+    cf = CloudFiles(bucket_save_location)
+    cf.put_json(f"{merge_id}.json", d)
+    if d['success']:
+        print(f"new roots: {d['new_root_ids']}")
 
 @queueable
 def execute_split(
@@ -1033,6 +1086,35 @@ def execute_split(
     #     raise Exception(
     #         f"Only {np.sum(edit_success)} of {len(edit_success)} were successful"
     #     )
+
+
+def make_merge_tasks(
+    df,
+    auth_token,
+    datastack_name,
+    bucket_save_location,
+    resolution,
+    parent_list_col="parent_supervoxel_id",
+    child_list_col="child_supervoxel_id",
+    parent_pos_col="parent_vertex",
+    child_pos_col="child_vertex",
+    merge_id_col="index",
+):
+    def make_merge_func(row):
+        bound_fn = partial(
+            execute_merge,
+            row[merge_id_col],
+            [row[parent_list_col], row[child_list_col]],
+            [row[parent_pos_col], row[child_pos_col]],
+            resolution,
+            datastack_name,
+            auth_token,
+            bucket_save_location,
+        )
+        return bound_fn
+
+    tasks = [make_merge_func(row) for k,row in df.iterrows()]
+    return tasks
 
 
 def make_split_tasks(

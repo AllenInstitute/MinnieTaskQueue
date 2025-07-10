@@ -3,6 +3,7 @@ from MinnieTask import (
     MinniePerformNucMergeTask,
     quantify_soma_region,
     execute_split, 
+    execute_merge,
     readjust_nuclei
 )
 from taskqueue import TaskQueue

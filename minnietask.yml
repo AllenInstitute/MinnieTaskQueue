@@ -5,7 +5,7 @@ metadata:
     run: minnietask-cpu2
   name: minnietask-cpu2
 spec:
-  replicas: 200
+  replicas: 300
   selector:
     matchLabels:
       run: minnietask-cpu2
@@ -21,14 +21,14 @@ spec:
         run: minnietask-cpu2
     spec:
       containers:
-        - image: fcollman/minnietask:v21
+        - image: caveconnectome/minnietask:h01-4
           name: minnietask-cpu2
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh"]
           args:
             [
               "-c",
-              "while true; do python -u worker.py https://sqs.us-west-2.amazonaws.com/629034007606/forrest 240; done",
+              "while true; do uv run python -u worker.py https://sqs.us-west-2.amazonaws.com/629034007606/forrest 240; done",
             ]
           env:
             - name: CLOUDSDK_CORE_PROJECT
@@ -39,8 +39,8 @@ spec:
               value: "test2"
           resources:
             requests:
-              cpu: 600m
-              memory: 1000Mi
+              cpu: 200m
+              memory: 300Mi
           volumeMounts:
             - name: secrets
               mountPath: /root/.cloudvolume/secrets
@@ -53,7 +53,7 @@ spec:
       volumes:
         - name: secrets
           secret:
-            secretName: secrets2
+            secretName: secretsh01
         - name: boto
           secret:
             secretName: boto
